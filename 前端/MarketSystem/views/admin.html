@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>超市收银后台系统</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <!--引入本地layui.css-->
+  <link rel="stylesheet" href="../layui/css/layui.css" media="all">
+  <!--引入本地自定义的admin.css-->
+  <link rel="stylesheet" href="../layui/layuiAdmin/css/admin.css" media="all">
+  
+  <!-- 引入 Vue.js -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+</head>
+<body class="layui-layout-body">
+
+<div id="app">
+  <div class="layui-layout layui-layout-admin">
+    <div class="layui-header" style="background-color: white!important;">
+      <!-- 头部区域 -->
+      <ul class="layui-nav layui-layout-left">
+        <li class="layui-nav-item layadmin-flexible" lay-unselect>
+          <a href="javascript:;" layadmin-event="flexible" title="侧边伸缩">
+            <i class="layui-icon layui-icon-shrink-right" id="LAY_app_flexible"></i>
+          </a>
+        </li>
+        <li class="layui-nav-item layui-hide-xs" lay-unselect>
+          <input type="text" placeholder="搜索..." autocomplete="off" class="layui-input layui-input-search" layadmin-event="serach" lay-action="template/search.html?keywords=">
+        </li>
+      </ul>
+      <ul class="layui-nav layui-layout-right" lay-filter="layadmin-layout-right">
+
+        <li class="layui-nav-item" lay-unselect>
+          <a lay-href="views/about/index.html" layadmin-event="message" lay-text="消息中心">
+            <i class="layui-icon layui-icon-notice"></i>
+            <!-- 如果有新消息，则显示小圆点 -->
+            <span class="layui-badge-dot"></span>
+          </a>
+        </li>
+        <li class="layui-nav-item" lay-unselect>
+          <a href="javascript:;">
+            <cite id="showAccount" style="color: #1C9399;font-weight: bold;padding-right: 5px;">{{ user.name }}</cite>
+          </a>
+          <dl class="layui-nav-child">
+            <dd><a lay-href="personal_information_management/info.html">基本资料</a></dd>
+            <dd><a lay-href="personal_information_management/password.html">修改密码</a></dd>
+            <hr>
+            <dd layadmin-event="logout" style="text-align: center;"><a href="javascript:void(0);" id="logout">退出</a></dd>
+          </dl>
+        </li>
+
+        <li class="layui-nav-item layui-hide-xs" lay-unselect>
+          <a href="javascript:;"><i class="layui-icon layui-icon-more-vertical"></i></a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 侧边菜单 -->
+    <div class="layui-side layui-side-menu" style="background-color: #1C9399!important;">
+      <div class="layui-side-scroll">
+        <ul class="layui-nav layui-nav-tree" lay-shrink="all" id="LAY-system-side-menu" lay-filter="layadmin-system-side-menu">
+          <!-- 当前登录信息居中显示 -->
+          <div style="text-align: left; padding: 20px; color: #fff;">
+            <div>姓名: <strong id="currentUserName">{{ user.name }}</strong></div>
+            <div>工号: <strong id="currentUserId">{{ user.employeeId }}</strong></div>
+          </div>
+
+          <!--首页 员工管理-->
+          <li data-name="home" class="layui-nav-item layui-nav-itemed">
+            <a href="javascript:;" lay-href="market/Employee_list.html" lay-tips="员工管理" lay-direction="2">
+              <i class="layui-icon layui-icon-home"></i>
+              <cite>员工管理</cite>
+            </a>
+          </li>
+          <!--商品管理-->
+          <li data-name="procurement" class="layui-nav-item">
+            <a href="javascript:;" lay-href="market/Goods_list.html" lay-tips="商品管理" lay-direction="2">
+              <i class="layui-icon layui-icon-form"></i>
+              <cite>商品管理</cite>
+            </a>
+          </li>
+          <!--销售管理-->
+          <li data-name="sales" class="layui-nav-item">
+            <a href="javascript:;" lay-href="market/Shop_list.html" lay-tips="销售管理" lay-direction="2">
+              <i class="layui-icon layui-icon-dollar"></i>
+              <cite>销售管理</cite>
+            </a>
+          </li>
+          <!--促销活动-->
+          <li data-name="warehouse" class="layui-nav-item">
+            <a href="javascript:;" lay-href="market/Promotion_list.html" lay-tips="促销活动" lay-direction="2">
+              <i class="layui-icon layui-icon-tabs"></i>
+              <cite>促销活动</cite>
+            </a>
+          </li>
+          <!--上货-->
+          <li data-name="personnel" class="layui-nav-item">
+            <a href="javascript:;" lay-href="market/Stocking_list.html" lay-tips="上货" lay-direction="3">
+              <i class="layui-icon layui-icon-chart"></i>
+              <cite>上货</cite>
+            </a>
+          </li>
+          <!--收银-->
+          <li data-name="system" class="layui-nav-item">
+            <a href="javascript:;" lay-href="market/Cashiering_list.html" lay-tips="收银" lay-direction="2">
+              <i class="layui-icon layui-icon-set"></i>
+              <cite>收银</cite>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 页面标签 -->
+    <div class="layadmin-pagetabs" id="LAY_app_tabs">
+      <div class="layui-icon layadmin-tabs-control layui-icon-prev" layadmin-event="leftPage"></div>
+      <div class="layui-icon layadmin-tabs-control layui-icon-next" layadmin-event="rightPage"></div>
+      <div class="layui-icon layadmin-tabs-control layui-icon-down">
+        <ul class="layui-nav layadmin-tabs-select" lay-filter="layadmin-pagetabs-nav">
+          <li class="layui-nav-item" lay-unselect>
+            <a href="javascript:;"></a>
+            <dl class="layui-nav-child layui-anim-fadein">
+              <dd layadmin-event="closeThisTabs"><a href="javascript:;">关闭当前标签页</a></dd>
+              <dd layadmin-event="closeOtherTabs"><a href="javascript:;">关闭其它标签页</a></dd>
+              <dd layadmin-event="closeAllTabs"><a href="javascript:;">关闭全部标签页</a></dd>
+            </dl>
+          </li>
+        </ul>
+      </div>
+      <div class="layui-tab" lay-unauto lay-allowClose="true" lay-filter="layadmin-layout-tabs">
+        <ul class="layui-tab-title" id="LAY_app_tabsheader">
+          <li lay-id="market/homepage.html"  lay-attr="home/console.html" class="layui-this"><i class="layui-icon layui-icon-home"></i></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 主体内容 -->
+    <div class="layui-body" id="LAY_app_body">
+      <div class="layadmin-tabsbody-item layui-show">
+        <iframe src="market/homepage.html" frameborder="0" class="layadmin-iframe"></iframe>
+      </div>
+    </div>
+
+    <!-- 辅助元素，一般用于移动设备下遮罩 -->
+    <div class="layadmin-body-shade" layadmin-event="shade"></div>
+  </div>
+</div>
+
+<!--引入本地的Layui.js-->
+<script type="text/javascript" src="../layui/layui.js"></script>
+<script type="text/javascript">
+  layui.config({
+      base: '../layui/layuiAdmin/' //静态资源所在路径
+  }).extend({
+      index: 'lib/index' //主入口模块
+  }).use('index');
+
+  // 动态设置用户信息（模拟从API获取）
+  window.onload = function() {
+    var user = {
+      name: '李四',  // 这里可以从后端获取用户信息
+      employeeId: '10002'
+    };
+    // 初始化 Vue 实例
+    new Vue({
+      el: '#app',
+      data: {
+        user: user
+      }
+    });
+  }
+</script>
+</body>
+</html>

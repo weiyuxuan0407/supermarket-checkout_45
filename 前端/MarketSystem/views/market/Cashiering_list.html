@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收银</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../layui/layuiAdmin/css/admin.css" media="all">
+</head>
+<body>
+
+<div class="layui-fluid">
+    <div class="layui-card">
+        <div class="layui-form layui-card-header layuiadmin-card-header-auto" style="border-radius: 0; border-top: 4px solid #d2d2d2;">
+            <!-- 收银员和日期 -->
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">收银员</label>
+                    <div class="layui-input-inline">
+                        <span class="layui-form-label">{{username}}</span> <!-- 修改为显示文本 -->
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">日期</label>
+                    <div class="layui-input-inline">
+                        <span class="layui-form-label">{{formatDate(new Date())}}</span> <!-- 修改为显示文本 -->
+                    </div>
+                </div>
+            </div>
+            <!-- 商品扫描 -->
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">条码</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="productBarcode" placeholder="请扫描商品条码" autocomplete="off" class="layui-input" id="productBarcode">
+                    </div>
+                    <button class="layui-btn layuiadmin-btn-useradmin" lay-submit lay-filter="LAY-activity-search">
+                        <i class="layui-icon layui-icon-search layuiadmin-button-btn"></i>查询
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-card-body">
+            <table id="LAY-product-manage" lay-filter="LAY-product-manage"></table>
+
+            <!-- 编辑和删除按钮模板 -->
+            <script type="text/html" id="table-product-admin">
+                <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+                <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"><i class="layui-icon layui-icon-delete"></i>删除</a>
+            </script>
+
+            <!-- 状态判断 -->
+            <script type="text/html" id="statusTpl">
+                {{#  if(d.status == 1){ }}
+                <button class="layui-btn layui-btn-xs">在售</button>
+                {{#  } else if(d.status == 2) { }}
+                <button class="layui-btn layui-btn-primary layui-btn-xs">下架</button>
+                {{#  } }}
+            </script>
+
+            <!-- 创建时间格式化处理 -->
+            <script type="text/html" id="createTimeTpl">
+                {{formatDate(d.createTime)}}
+            </script>
+
+            <!-- 更新时间格式化处理 -->
+            <script type="text/html" id="updateTimeTpl">
+                {{formatDate(d.updateTime)}}
+            </script>
+
+        </div>
+    </div>
+</div>
+
+<script src="../../layui/layui.js"></script>
+<script type="text/javascript">
+    // 日期格式转换函数
+    function formatDate(str) {
+        if (str != null) {
+            var now = new Date(str);
+            var year = now.getFullYear();  // 取得4位数的年份
+            var month = now.getMonth() + 1;  // 取得日期中的月份
+            var date = now.getDate();  // 返回日期中的天数
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+            return year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+        }
+        return "";
+    }
+
+    // 获取当前日期的简化版
+    function getCurrentDate() {
+        var now = new Date();
+        var year = now.getFullYear();
+        var month = (now.getMonth() + 1).toString().padStart(2, '0');
+        var day = now.getDate().toString().padStart(2, '0');
+        return year + "-" + month + "-" + day;
+    }
+
+    layui.config({
+        base: '../layui/layuiAdmin/' // 静态资源所在路径
+    }).extend({
+        index: 'lib/index' // 主入口模块
+    }).use(['layer', 'table', 'form'], function () {
+        var $ = layui.$,
+            form = layui.form,
+            layer = layui.layer,
+            table = layui.table;
+
+        // 加载商品表格数据
+        table.render({
+            elem: '#LAY-product-manage',
+            url: '/product/findAllProducts', // 后端接口，获取商品数据
+            cellMinWidth: 80, // 全局定义常规单元格的最小宽度
+            title: '商品数据表',
+            cols: [[
+                {type: 'checkbox', fixed: 'left'},
+                {field: 'productId', title: '序号', width: 100, edit: 'text'},
+                {field: 'barcode', title: '商品名称', width: 120, edit: 'text'},
+                {field: 'productName', title: '单价', width: 180, edit: 'text'},
+                {field: 'unit', title: '数量', width: 80, edit: 'text'},
+                {field: 'price', title: '金额', width: 120, edit: 'text'},
+            ]],
+            page: {
+                curr: 1, // 设置初始在第 1 页
+                limit: 5, // 设置初始每页显示 5 条
+            },
+            limits: [5, 10, 15, 20],
+            done: function() {
+                // 渲染完成后，绑定表格编辑事件
+                table.on('edit(LAY-product-manage)', function(obj) {
+                    var value = obj.value,  // 编辑后的值
+                        data = obj.data,     // 当前行数据
+                        field = obj.field;   // 编辑的字段
+
+                    // 你可以在这里做一些额外的处理，比如验证或发送 AJAX 请求更新数据
+                    console.log(value, data, field);
+                });
+            }
+        });
+
+        // 添加商品上货操作
+        var active = {
+            search: function () {
+                var barcode = $('#productBarcode').val().trim();
+                if (!barcode) {
+                    return layer.msg('请输入商品条码');
+                }
+
+                // 获取表格中所有数据
+                var tableData = table.cache['LAY-product-manage']; // 获取表格缓存数据
+                if (tableData && tableData.length > 0) {
+                    var postData = tableData.map(function(item) {
+                        return {
+                            barcode: item.barcode,
+                            productName: item.productName,
+                            unit: item.unit,
+                            price: item.price
+                        };
+                    });
+
+                    // 模拟上货操作（提交数据给后台）
+                    $.ajax({
+                        url: '/product/stockProduct', // 后端接口，商品上货
+                        type: 'POST',
+                        data: JSON.stringify(postData),
+                        contentType: 'application/json',
+                        success: function (res) {
+                            if (res.code === 0) {
+                                layer.msg(res.message); // 弹出提示
+                                table.reload('LAY-product-manage'); // 刷新商品表格
+                            } else {
+                                layer.msg('商品上货失败');
+                            }
+                        },
+                        error: function () {
+                            layer.msg('请求失败，请重试');
+                        }
+                    });
+                } else {
+                    layer.msg('没有可提交的数据');
+                }
+            }
+        };
+
+        // 点击确定按钮执行上货操作
+        $('.layui-btn.layuiadmin-btn-useradmin').on('click', function () {
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+    });
+</script>
+</body>
+</html>

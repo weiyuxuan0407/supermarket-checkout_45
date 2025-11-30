@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../layui/layuiAdmin/css/admin.css" media="all">
+</head>
+<body>
+
+<div class="layui-fluid">
+    <div class="layui-card">
+        <div class="layui-form layui-card-header layuiadmin-card-header-auto" style="border-radius: 0; border-top: 4px solid #d2d2d2;">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">搜索商品</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="productName" placeholder="请输入商品名称" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layuiadmin-btn-useradmin" lay-submit lay-filter="LAY-product-front-search">
+                        <i class="layui-icon layui-icon-search layuiadmin-button-btn"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="layui-card-body">
+
+            <div style="padding-bottom: 10px;">
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="show">查看商品类别</button>
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="add">添加商品类别</button>
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="show">查看商品</button>
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="add">添加商品</button>
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="batchdel">删除商品</button>
+            </div>
+
+            <table id="LAY-product-manage" lay-filter="LAY-product-manage"></table>
+
+            <!-- 编辑和删除按钮模板 -->
+            <script type="text/html" id="table-product-admin">
+                <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+                <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"><i class="layui-icon layui-icon-delete"></i>删除</a>
+            </script>
+
+            <!-- 状态判断 -->
+            <script type="text/html" id="statusTpl">
+                {{#  if(d.status == 1){ }}
+                <button class="layui-btn layui-btn-xs">在售</button>
+                {{#  } else if(d.status == 2) { }}
+                <button class="layui-btn layui-btn-primary layui-btn-xs">下架</button>
+                {{#  } }}
+            </script>
+
+            <!-- 创建时间格式化处理 -->
+            <script type="text/html" id="createTimeTpl">
+                {{formatDate(d.createTime)}}
+            </script>
+
+            <!-- 更新时间格式化处理 -->
+            <script type="text/html" id="updateTimeTpl">
+                {{formatDate(d.updateTime)}}
+            </script>
+
+        </div>
+    </div>
+</div>
+
+<script src="../../layui/layui.js"></script>
+<script type="text/javascript">
+    // 日期格式转换函数
+    function formatDate(str) {
+        if (str != null) {
+            var now = new Date(str);
+            var year = now.getFullYear();  // 取得4位数的年份
+            var month = now.getMonth() + 1;  // 取得日期中的月份
+            var date = now.getDate();  // 返回日期中的天数
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+            return year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+        }
+        return "";
+    }
+
+    layui.config({
+        base: '../layui/layuiAdmin/' // 静态资源所在路径
+    }).extend({
+        index: 'lib/index' // 主入口模块
+    }).use(['layer', 'table', 'form'], function () {
+        var $ = layui.$,
+            form = layui.form,
+            layer = layui.layer,
+            table = layui.table;
+
+        // 加载表格数据
+        table.render({
+            elem: '#LAY-product-manage',
+            url: '/product/findAllProducts', // 后端接口，获取商品数据
+            cellMinWidth: 80, // 全局定义常规单元格的最小宽度
+            title: '商品数据表',
+            cols: [[
+                {type: 'checkbox', fixed: 'left'},
+                {field: 'productId', title: '商品ID', width: 100},
+                {field: 'barcode', title: '商品条码', width: 120},
+                {field: 'productName', title: '商品名称', width: 100},
+                {field: 'unit', title: '单位', width: 80},
+                {field: 'price', title: '当前售价', width: 120},
+                {field: 'stock', title: '库存数量', width: 100},
+                {field: 'category1', title: '一级类别', width: 100},
+                {field: 'category2', title: '二级类别', width: 100},
+                {field: 'status', title: '商品状态', templet: '#statusTpl', width: 100},
+                {fixed: 'right', title: '操作', toolbar: '#table-product-admin', width: 180}
+            ]],
+            page: {
+                curr: 1, // 设置初始在第 1 页
+                limit: 5, // 设置初始每页显示 5 条
+            },
+            limits: [5, 10, 15, 20]
+        });
+
+        // 监听行工具事件
+        table.on('tool(LAY-product-manage)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'del') {
+                layer.confirm('确定删除该商品吗？', function (index) {
+                    $.ajax({
+                        url: "/product/delete", // 请求后端接口删除商品
+                        type: "POST",
+                        data: {productId: data.productId}, // 提交参数
+                        dataType: "json",
+                        success: function (res) {
+                            if (res.code === 0) {
+                                layer.msg(res.msg); // 弹出提示
+                                table.reload('LAY-product-manage'); // 数据刷新
+                                layer.close(index); // 关闭弹层
+                            }
+                        }
+                    });
+                });
+            } else if (obj.event === 'edit') {
+                layer.open({
+                    type: 2,
+                    title: '修改商品信息',
+                    skin: 'layui-layer-molv',
+                    content: 'edit.html',
+                    maxmin: true,
+                    area: ['480px', '570px'],
+                    success: function (layero, index) {
+                        var body = layer.getChildFrame("body", index);
+                        body.find("input[name=productId]").val(data.productId);
+                        body.find("input[name=barcode]").val(data.barcode);
+                        body.find("input[name=productName]").val(data.productName);
+                        body.find("input[name=unit]").val(data.unit);
+                        body.find("input[name=price]").val(data.price);
+                        body.find("input[name=stock]").val(data.stock);
+                        body.find("input[name=category1]").val(data.category1);
+                        body.find("input[name=category2]").val(data.category2);
+                        body.find("select[name=status]").val(data.status);
+                    },
+                    btn: ['确定', '取消'],
+                    yes: function (index, layero) {
+                        var iframeWindow = window['layui-layer-iframe' + index],
+                            submitID = 'LAY-product-front-submit',
+                            submit = layero.find('iframe').contents().find('#' + submitID);
+                        iframeWindow.layui.form.on('submit(' + submitID + ')', function (data) {
+                            var field = data.field;
+                            $.ajax({
+                                url: "/product/update", // 请求后端接口更新商品
+                                type: "POST",
+                                data: JSON.stringify(field),
+                                contentType: "application/json;charset=utf-8",
+                                dataType: "json",
+                                success: function (res) {
+                                    if (res.code === 0) {
+                                        layer.msg(res.msg); // 弹出提示
+                                        table.reload('LAY-product-manage'); // 数据刷新
+                                        layer.close(index); // 关闭弹层
+                                    }
+                                }
+                            });
+                        });
+                        submit.trigger('click');
+                    }
+                });
+            }
+        });
+
+        // 搜索功能
+        form.on('submit(LAY-product-front-search)', function (data) {
+            var field = data.field;
+            table.reload('LAY-product-manage', {
+                url: '/product/search', // 后端接口进行商品搜索
+                where: field
+            });
+        });
+
+        // 批量删除
+        var active = {
+            batchdel: function () {
+                var checkStatus = table.checkStatus('LAY-product-manage'),
+                    checkData = checkStatus.data; // 获取选中的数据
+
+                if (checkData.length === 0) {
+                    return layer.msg('请选择要删除的商品');
+                }
+
+                layer.confirm('确定删除选中的商品吗？', function () {
+                    $.ajax({
+                        url: "/product/batchDelete", // 后端批量删除商品接口
+                        type: "POST",
+                        data: {productIds: checkData.map(item => item.productId)}, // 提交删除的商品ID
+                        dataType: "json",
+                        success: function (res) {
+                            if (res.code === 0) {
+                                layer.msg('删除成功');
+                                table.reload('LAY-product-manage'); // 数据刷新
+                            }
+                        }
+                    });
+                });
+            },
+            add: function () {
+                layer.open({
+                    type: 2,
+                    title: '添加商品信息',
+                    skin: 'layui-layer-molv',
+                    content: '../goods/add.html',
+                    maxmin: true,
+                    area: ['480px', '370px'],
+                    btn: ['确定', '取消'],
+                    yes: function (index, layero) {
+                        var iframeWindow = window['layui-layer-iframe' + index],
+                            submitID = 'LAY-product-front-submit',
+                            submit = layero.find('iframe').contents().find('#' + submitID);
+                        iframeWindow.layui.form.on('submit(' + submitID + ')', function (data) {
+                            var field = data.field;
+                            $.ajax({
+                                url: "/product/save", // 请求后端接口保存商品
+                                type: "POST",
+                                data: JSON.stringify(field),
+                                contentType: "application/json;charset=utf-8",
+                                dataType: "json",
+                                success: function (res) {
+                                    if (res.code === 0) {
+                                        layer.msg(res.msg); // 弹出提示
+                                        table.reload('LAY-product-manage'); // 数据刷新
+                                        layer.close(index); // 关闭弹层
+                                    }
+                                }
+                            });
+                        });
+                        submit.trigger('click');
+                    }
+                });
+            }
+        };
+
+        $('.layui-btn.layuiadmin-btn-useradmin').on('click', function () {
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+    });
+</script>
+</body>
+</html>

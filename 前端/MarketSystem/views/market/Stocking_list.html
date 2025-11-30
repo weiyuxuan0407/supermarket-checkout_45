@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上货</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../layui/layuiAdmin/css/admin.css" media="all">
+</head>
+<body>
+
+<div class="layui-fluid">
+    <div class="layui-card">
+        <div class="layui-form layui-card-header layuiadmin-card-header-auto" style="border-radius: 0; border-top: 4px solid #d2d2d2;">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">条码</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="productBarcode" placeholder="请输入8位数字商品条码" autocomplete="off" class="layui-input" id="productBarcode" oninput="value=value.replace(/[^\d]/g,'')" maxlength="8">
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">商品名称</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="productName" placeholder="请输入商品名称" autocomplete="off" class="layui-input" id="productName">
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">单位</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="unit" placeholder="请输入单位（限2字）" autocomplete="off" class="layui-input" id="unit" maxlength="2">
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">上货数量</label>
+                    <div class="layui-input-inline">
+                        <input type="number" name="price" placeholder="请输入上货数量" autocomplete="off" class="layui-input" id="price" min="0">
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layuiadmin-btn-useradmin" lay-submit lay-filter="LAY-product-front-add">
+                        <i class="layui-icon layui-icon-add-circle layuiadmin-button-btn"></i>
+                        添加商品
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-card-body">
+            <div style="padding-bottom: 10px;">
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="check">确定上货</button>
+            </div>
+            <table id="LAY-product-manage" lay-filter="LAY-product-manage"></table>
+
+            <!-- 编辑和删除按钮模板 -->
+            <script type="text/html" id="table-product-admin">
+                <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+                <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"><i class="layui-icon layui-icon-delete"></i>删除</a>
+            </script>
+
+            <!-- 状态判断 -->
+            <script type="text/html" id="statusTpl">
+                {{#  if(d.status == 1){ }}
+                <button class="layui-btn layui-btn-xs">在售</button>
+                {{#  } else if(d.status == 2) { }}
+                <button class="layui-btn layui-btn-primary layui-btn-xs">下架</button>
+                {{#  } }}
+            </script>
+
+            <!-- 创建时间格式化处理 -->
+            <script type="text/html" id="createTimeTpl">
+                {{formatDate(d.createTime)}}
+            </script>
+
+            <!-- 更新时间格式化处理 -->
+            <script type="text/html" id="updateTimeTpl">
+                {{formatDate(d.updateTime)}}
+            </script>
+
+        </div>
+    </div>
+</div>
+
+<script src="../../layui/layui.js"></script>
+<script type="text/javascript">
+    // 日期格式转换函数
+    function formatDate(str) {
+        if (str != null) {
+            var now = new Date(str);
+            var year = now.getFullYear();  // 取得4位数的年份
+            var month = now.getMonth() + 1;  // 取得日期中的月份
+            var date = now.getDate();  // 返回日期中的天数
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+            return year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+        }
+        return "";
+    }
+
+    layui.config({
+        base: '../layui/layuiAdmin/' // 静态资源所在路径
+    }).extend({
+        index: 'lib/index' // 主入口模块
+    }).use(['layer', 'table', 'form'], function () {
+        var $ = layui.$,
+            form = layui.form,
+            layer = layui.layer,
+            table = layui.table;
+
+        // 添加商品到表格
+        form.on('submit(LAY-product-front-add)', function(data){
+            var productBarcode = $('#productBarcode').val();
+            var productName = $('#productName').val();
+            var unit = $('#unit').val();
+            var price = $('#price').val();
+
+            if(productBarcode && productName && unit && price && !isNaN(price) && price >= 0 && /^\d{8}$/.test(productBarcode) && unit.length <= 2){
+                // 添加到表格
+                table.reload('LAY-product-manage', {
+                    data: [{barcode: productBarcode, productName: productName, unit: unit, price: price}]
+                });
+                layer.msg('商品添加成功');
+                $('#productBarcode').val('');
+                $('#productName').val('');
+                $('#unit').val('');
+                $('#price').val('');
+            }else{
+                layer.msg('请输入完整且有效的商品信息，商品条码需为8位数字，单位限2字以内，上货数量不能为负数');
+            }
+            return false;
+        });
+
+        // 加载商品表格数据
+        table.render({
+            elem: '#LAY-product-manage',
+            cellMinWidth: 80, // 全局定义常规单元格的最小宽度
+            title: '商品数据表',
+            cols: [[
+                {type: 'checkbox', fixed: 'left'},
+                {field: 'barcode', title: '商品条码', width: 120, edit: 'text'},
+                {field: 'productName', title: '商品名称', width: 180, edit: 'text'},
+                {field: 'unit', title: '单位', width: 80, edit: 'text'},
+                {field: 'price', title: '上货数量', width: 120, edit: 'text'},
+            ]],
+            page: false,
+            data: []
+        });
+
+        // 添加商品上货操作
+        var active = {
+            check: function () {
+                // 获取表格中所有数据
+                var tableData = table.cache['LAY-product-manage']; // 获取表格缓存数据
+
+                if (tableData && tableData.length > 0) {
+                    // 模拟上货操作
+                    layer.msg('商品上货成功！'); // 弹出成功提示
+                    table.reload('LAY-product-manage', {
+                        data: []
+                    }); // 刷新商品表格
+                } else {
+                    layer.msg('没有可提交的数据'); // 提示没有可提交的数据
+                }
+            }
+        };
+
+
+        //连接数据库
+        // 添加商品上货操作
+        /*var active = {
+            check: function () {
+                // 获取表格中所有数据
+                var tableData = table.cache['LAY-product-manage']; // 获取表格缓存数据
+
+                if (tableData && tableData.length > 0) {
+                    // 收集需要上货的商品信息
+                    var postData = [];
+                    tableData.forEach(function(item) {
+                        postData.push({
+                            barcode: item.barcode,
+                            productName: item.productName,
+                            unit: item.unit,
+                            price: item.price
+                        });
+                    });
+
+                    // 发送请求到后端接口
+                    $.ajax({
+                        url: '/product/addStock', // 后端接口地址
+                        type: 'POST', // 请求类型
+                        contentType: 'application/json', // 发送的数据类型
+                        data: JSON.stringify(postData), // 将数据转换为JSON字符串
+                        success: function(response) {
+                            // 请求成功后的回调函数
+                            if(response.code === 200){
+                                layer.msg('商品上货成功！');
+                                table.reload('LAY-product-manage', {
+                                    data: []
+                                }); // 刷新商品表格
+                            }else{
+                                layer.msg('商品上货失败：' + response.message);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            // 请求失败后的回调函数
+                            layer.msg('请求失败：' + error);
+                        }
+                    });
+                } else {
+                    layer.msg('没有可提交的数据'); // 提示没有可提交的数据
+                }
+            }
+        };*/
+
+        // 点击确定按钮执行上货操作
+        $('.layui-btn.layuiadmin-btn-useradmin').on('click', function () {
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+        // 监听编辑事件
+        table.on('edit(LAY-product-manage)', function(obj) {
+            var value = obj.value;  // 编辑后的值
+            var data = obj.data;    // 当前行数据
+            var field = obj.field;  // 编辑的字段
+
+            if(field === 'price' && value < 0){
+                layer.msg('上货数量不能为负数');
+                obj.update({price: data.price}); // 恢复原值
+                return;
+            }
+
+            if(field === 'unit' && value.length > 2){
+                layer.msg('单位限2字以内');
+                obj.update({unit: data.unit}); // 恢复原值
+                return;
+            }
+
+            if(field === 'barcode' && !/^\d{8}$/.test(value)){
+                layer.msg('商品条码需为8位数字');
+                obj.update({barcode: data.barcode}); // 恢复原值
+                return;
+            }
+
+            // 可以在这里对输入进行验证或其他操作
+            console.log('编辑字段：', field, '新值：', value);
+
+            // 重新设置表格数据缓存
+            table.cache['LAY-product-manage'][obj.tr.attr('data-index')] = data;
+        });
+    });
+</script>
+</body>
+</html>
