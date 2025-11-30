@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>患者管理</title>
+    <link rel="stylesheet" href="../../../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../../layui/layuiAdmin/css/admin.css" media="all">
+</head>
+<body>
+
+<div class="layui-fluid">
+    <div class="layui-card">
+        <div class="layui-form layui-card-header layuiadmin-card-header-auto" style="border-radius: 0;border-top: 4px solid #d2d2d2;">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">姓名</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="username" placeholder="请输入姓名" autocomplete="off" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn layuiadmin-btn-useradmin" lay-submit lay-filter="LAY-sysuser-front-search">
+                        <i class="layui-icon layui-icon-search layuiadmin-button-btn"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="layui-card-body">
+
+            <div style="padding-bottom: 10px;">
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="batchdel">删除</button>
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="add">添加</button>
+            </div>
+
+            <table id="LAY-user-manage" lay-filter="LAY-user-manage"></table>
+
+            <script type="text/html" id="table-useradmin-webuser">
+                <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+                <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"><i class="layui-icon layui-icon-delete"></i>删除</a>
+            </script>
+
+            <!--状态判断-->
+            <script type="text/html" id="statusTpl">
+                {{#  if(d.status == 1){ }}
+                <button class="layui-btn layui-btn-xs">正常</button>
+                {{#  } else if(d.status == 2) { }}
+                <button class="layui-btn layui-btn-primary layui-btn-xs">冻结</button>
+                {{#  } }}
+
+            </script>
+
+            <!--  创建时间格式化处理 -->
+            <script type="text/html" id="createTimeTpl">
+                {{formatDate(d.createTime)}}
+            </script>
+
+            <!--  更新时间格式化处理 -->
+            <script type="text/html" id="updateTimeTpl">
+                {{formatDate(d.updateTime)}}
+            </script>
+
+        </div>
+    </div>
+</div>
+
+<script src="../../../layui/layui.js"></script>
+<script type="text/javascript">
+    // 日期格式转换函数
+    function formatDate(str) {
+        if(str != null){
+            var now = new Date(str);
+            var year = now.getFullYear();  //取得4位数的年份
+            var month = now.getMonth() + 1;  //取得日期中的月份，其中0表示1月，11表示12月
+            var date = now.getDate();      //返回日期月份中的天数（1到31）
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+            return year + "-" + month + "-" + date +" "+hours+":"+minutes+":"+seconds;
+        }
+        return "";
+    }
+</script>
+<script type="text/javascript">
+    layui.config({
+        base: '../../layui/layuiAdmin/' //静态资源所在路径
+    }).extend({
+        index: 'lib/index' //主入口模块
+    }).use(['layer','table','form'], function(){
+        var $ = layui.$
+            ,form = layui.form
+            ,layer = layui.layer
+            ,table = layui.table;
+
+        //加载table
+        table.render({
+            elem: '#LAY-user-manage'
+            ,url:'/sys_user/findSysUserAll' //后端接口
+            ,cellMinWidth: 80 //全局定义常规单元格的最小宽度
+            ,title: '系统用户数据表'
+            ,cols: [[
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'userId',title:'ID',width: 80}
+                ,{field:'account', title:'账户',width: 100}
+                ,{field:'username', title:'姓名',width: 100}
+                ,{field:'phone', title:'手机号码',width: 180}
+                ,{field:'deptName', title:'所属部门',width: 100}
+                ,{field:'deptId', title:'所属部门ID',hide:true}
+                ,{field:'roleName', title:'所属角色',width: 100}
+                ,{field:'roleId', title:'所属角色ID',hide:true}
+                ,{field:'status', title:'状态',templet: '#statusTpl',width: 80}
+                ,{field:'createTime', title:'创建时间',templet:'#createTimeTpl',width: 140}
+                ,{field:'updateTime', title:'更新时间',templet:'#updateTimeTpl',width: 140}
+                ,{fixed: 'right', title:'操作', toolbar: '#table-useradmin-webuser',width:180}
+            ]]
+            ,page: {
+                curr: 1 //设定初始在第 5 页
+                ,limit: 5 //设定初始每页显示 5 条
+            },
+            limits:[5,10,15,20]
+        });
+
+        //监听行工具事件
+        table.on('tool(LAY-user-manage)', function(obj){
+            var data = obj.data;
+            //console.log(obj)
+            if(obj.event === 'del'){
+                layer.confirm('真的删除行么', function(index){
+                    $.ajax({
+                        url:"/emp/del", //请求后端接口地址
+                        type:"post", //请求方式get | post
+                        data:{empno:data.empno}, //提交json字符串对象参数
+                        dataType:"json", //后端返回参数类型
+                        success:function (res){ //请求成功后回调函数res = JSONObject.toJSONString(resultMap)
+                            if(res.code == 0){//成功
+                                layer.msg(res.msg);//弹出提示
+                                table.reload('LAY-user-manage'); //数据刷新
+                                layer.close(index); //关闭弹层
+                            }
+                            if(res.code == -1){//系统出问题
+                                layer.msg(res.msg,{icon: 5});//弹出提示
+                            }
+                        }
+                    })
+                });
+            } else if(obj.event === 'edit'){
+                layer.open({
+                    type: 2
+                    ,title: '修改雇员信息'
+                    ,skin: 'layui-layer-molv'
+                    ,content: 'edit.html'
+                    ,maxmin: true
+                    ,area: ['480px', '570px']
+                    ,success: function (layero,index){
+                        var body = layer.getChildFrame("body",index);
+                        var contentWindow = layero.find('iframe')[0].contentWindow;//得到iframe页的窗口对象，执行iframe页的方法：iframeWin.method();
+                        body.find("input[name=empno]").val(data.empno);
+                        body.find("input[name=ename]").val(data.ename);
+                        body.find("input[name=job]").val(data.job);
+                        body.find("input[name=mgr]").val(data.mgr);
+
+                        var now = new Date(data.hiredate);
+                        var year = now.getFullYear();  //取得4位数的年份
+                        var month = now.getMonth() + 1;  //取得日期中的月份，其中0表示1月，11表示12月
+                        var date = now.getDate();      //返回日期月份中的天数（1到31）
+                        var hiredate = year + "-" + month + "-" + date;
+
+                        body.find("input[name=hiredate]").val(hiredate);
+                        body.find("input[name=sal]").val(data.sal);
+                        body.find("input[name=comm]").val(data.comm);
+                        body.find("input[name=deptno]").val(data.deptno);
+                    }
+                    ,btn: ['确定', '取消']
+                    ,yes: function(index, layero){
+                        var iframeWindow = window['layui-layer-iframe'+ index]
+                            ,submitID = 'LAY-user-front-submit'
+                            ,submit = layero.find('iframe').contents().find('#'+ submitID);
+                        //监听提交
+                        iframeWindow.layui.form.on('submit('+ submitID +')', function(data){
+                            var field = data.field; //获取提交的字段
+                            $.ajax({
+                                url:"/emp/update", //请求后端接口地址
+                                type:"post", //请求方式get | post
+                                data:JSON.stringify(field), //提交json字符串对象参数
+                                contentType:"application/json;charset=utf-8", //发送信息至服务器时内容编码类型
+                                dataType:"json", //后端返回参数类型
+                                success:function (res){ //请求成功后回调函数res = JSONObject.toJSONString(resultMap)
+                                    if(res.code == 0){//成功
+                                        layer.msg(res.msg);//弹出提示
+                                        table.reload('LAY-user-manage'); //数据刷新
+                                        layer.close(index); //关闭弹层
+                                    }
+                                    if(res.code == -1){//系统出问题
+                                        layer.msg(res.msg,{icon: 5});//弹出提示
+                                    }
+                                }
+                            })
+                        });
+                        submit.trigger('click');
+                    }
+                });
+
+            }
+        });
+
+
+        //监听搜索
+        form.on('submit(LAY-sysuser-front-search)', function(data){
+            var field = data.field;
+            //执行重载
+            table.reload('LAY-user-manage', {
+                url: '/sys_user/search',
+                where: field
+            });
+        });
+
+        //事件
+        var active = {
+            batchdel: function(){
+                var checkStatus = table.checkStatus('LAY-user-manage')
+                    ,checkData = checkStatus.data; //得到选中的数据
+
+                if(checkData.length == 0){
+                    return layer.msg('请选择数据');
+                }
+
+                // 程序走到这里，表示已经有选中要删除的数据了。
+                layer.confirm('确定删除吗？',function (){
+                    //真实删除，应该和后端结合 ajax
+                    table.reload('LAY-user-manage');
+                    layer.msg('已删除');
+                })
+            }
+            ,add: function(){
+                layer.open({
+                    type: 2
+                    ,title: '添加系统员工信息'
+                    ,skin: 'layui-layer-molv'
+                    ,content: 'add.html'
+                    ,maxmin: true
+                    ,area: ['480px', '370px']
+                    ,btn: ['确定', '取消']
+                    ,yes: function(index, layero){
+                        var iframeWindow = window['layui-layer-iframe'+ index]
+                            ,submitID = 'LAY-user-front-submit'
+                            ,submit = layero.find('iframe').contents().find('#'+ submitID);
+                        //监听提交
+                        iframeWindow.layui.form.on('submit('+ submitID +')', function(data){
+                            var field = data.field; //获取提交的字段
+                            $.ajax({
+                                url:"/sys_user/save", //请求后端接口地址
+                                type:"post", //请求方式get | post
+                                data:JSON.stringify(field), //提交json字符串对象参数
+                                contentType:"application/json;charset=utf-8", //发送信息至服务器时内容编码类型
+                                dataType:"json", //后端返回参数类型
+                                success:function (res){ //请求成功后回调函数res = JSONObject.toJSONString(resultMap)
+                                    if(res.code == 0){//成功
+                                        layer.msg(res.message);//弹出提示
+                                        table.reload('LAY-user-manage'); //数据刷新
+                                        layer.close(index); //关闭弹层
+                                    }
+                                    if(res.code == -1){//系统出问题
+                                        layer.msg(res.msg,{icon: 5});//弹出提示
+                                    }
+                                }
+                            })
+
+                        });
+                        submit.trigger('click');
+                    }
+                });
+            }
+        };
+
+        $('.layui-btn.layuiadmin-btn-useradmin').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+    });
+</script>
+</body>
+</html>

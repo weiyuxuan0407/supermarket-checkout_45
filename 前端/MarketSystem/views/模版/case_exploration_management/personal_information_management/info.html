@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>设置我的资料</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+  <link rel="stylesheet" href="../../layui/layuiAdmin/css/admin.css" media="all">
+</head>
+<body>
+
+  <div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+      <div class="layui-col-md12">
+        <div class="layui-card">
+          <div class="layui-card-header">设置我的资料</div>
+          <div class="layui-card-body" pad15>
+            <div class="layui-form" lay-filter="sysUserForm">
+              <!--用户名-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">用户名</label>
+                <div class="layui-input-inline">
+                  <input type="text" name="username" readonly class="layui-input">
+                </div>
+                <div class="layui-form-mid layui-word-aux">不可修改。一般用于后台登入名</div>
+              </div>
+              <!--真实姓名-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">真实姓名</label>
+                <div class="layui-input-inline">
+                  <input type="text" name="realName" lay-verify="nickname" autocomplete="off" placeholder="请输入真实姓名" class="layui-input">
+                </div>
+              </div>
+              <!--部门-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">所属部门</label>
+                <div class="layui-input-inline">
+                  <select name="deptId" lay-verify="">
+                    <option value="">--选择部门--</option>
+                    <option value="1">网络安全部</option>
+                    <option value="2">科技研发部</option>
+                    <option value="3">市场推广部</option>
+                  </select>
+                </div>
+              </div>
+              <!--头像-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">头像</label>
+                <div class="layui-input-inline">
+                  <input name="avatar" lay-verify="required" id="LAY_avatarSrc" placeholder="图片地址" class="layui-input">
+                </div>
+                <div class="layui-input-inline layui-btn-container" style="width: auto;">
+                  <button type="button" class="layui-btn layui-btn-primary" id="LAY_avatarUpload">
+                    <i class="layui-icon">&#xe67c;</i>上传图片
+                  </button>
+                  <button class="layui-btn layui-btn-primary" layadmin-event="avartatPreview">查看图片</button >
+                </div>
+              </div>
+              <!--性别-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">性别</label>
+                <div class="layui-input-block">
+                  <input type="radio" name="sex" value="1" title="男" checked>
+                  <input type="radio" name="sex" value="2" title="女">
+                </div>
+              </div>
+              <!--手机号码-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">手机号码</label>
+                <div class="layui-input-inline">
+                  <input type="text" name="mobile" value="" lay-verify="mobile" autocomplete="off" class="layui-input">
+                </div>
+              </div>
+              <!--邮箱-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">邮箱</label>
+                <div class="layui-input-inline">
+                  <input type="text" name="email" value="" lay-verify="email" autocomplete="off" class="layui-input">
+                </div>
+              </div>
+              <!--状态-->
+              <div class="layui-form-item">
+                <label class="layui-form-label">账户状态</label>
+                <div class="layui-input-block">
+                  <input type="radio" name="status" value="1" title="正常" checked>
+                  <input type="radio" name="status" value="2" title="冻结">
+                </div>
+              </div>
+              <!--备注-->
+              <div class="layui-form-item layui-form-text">
+                <label class="layui-form-label">备注</label>
+                <div class="layui-input-block">
+                  <textarea name="remark" placeholder="请输入内容" class="layui-textarea"></textarea>
+                </div>
+              </div>
+
+              <div class="layui-form-item">
+                <div class="layui-input-block">
+                  <button class="layui-btn" lay-submit lay-filter="setmyinfo">确认修改</button>
+                  <button type="reset" class="layui-btn layui-btn-primary">重新填写</button>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../layui/layui.js"></script>
+  <script>
+    layui.config({
+      base: '../../layui/layuiAdmin/' //静态资源所在路径
+    }).extend({
+      index: 'lib/index' //主入口模块
+    }).use(['index','layer','layedit'], function(){
+      var $ = layui.$
+              ,layer = layui.layer
+              ,layedit = layui.layedit
+              ,form = layui.form;
+            // 1. 从localStorage对象将登录成功用户信息取出来
+            var sysUserInfo = JSON.parse(localStorage.getItem("sysUserInfo"));
+            // 2. 表单数据回显
+            form.val('sysUserForm', {
+              "username": sysUserInfo.username
+              ,"realName": sysUserInfo.realName
+              ,"deptId": sysUserInfo.deptId
+              ,"avatar": sysUserInfo.avatar
+              ,"sex": sysUserInfo.sex
+              ,"mobile": sysUserInfo.mobile
+              ,"email": sysUserInfo.email
+              ,"status": sysUserInfo.status
+              ,"remark": sysUserInfo.remark
+            });
+
+    });
+  </script>
+</body>
+</html>

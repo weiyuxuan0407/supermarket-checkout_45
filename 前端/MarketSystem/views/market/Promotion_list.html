@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>促销活动</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../layui/layuiAdmin/css/admin.css" media="all">
+</head>
+<body>
+
+<div class="layui-fluid">
+    <div class="layui-card">
+        <div class="layui-form layui-card-header layuiadmin-card-header-auto" style="border-radius: 0; border-top: 4px solid #d2d2d2;">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">活动名称</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="productName" placeholder="请输入活动名称" autocomplete="off" class="layui-input">
+                    </div>
+                    <button class="layui-btn layuiadmin-btn-useradmin" lay-submit lay-filter="LAY-activity-search">
+                        <i class="layui-icon layui-icon-search layuiadmin-button-btn"></i>搜索活动
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="layui-card-body">
+
+            <div style="padding-bottom: 10px;">
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="batchdel">活动类型管理</button>
+                <button class="layui-btn layuiadmin-btn-useradmin" data-type="add">活动管理</button>
+            </div>
+
+            <table id="LAY-activity-manage" lay-filter="LAY-activity-manage"></table>
+
+            <script type="text/html" id="table-activityadmin">
+                <a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="edit"><i class="layui-icon layui-icon-edit"></i>编辑</a>
+                <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"><i class="layui-icon layui-icon-delete"></i>删除</a>
+            </script>
+
+            <!-- 状态判断 -->
+            <script type="text/html" id="statusTpl">
+                {{#  if(d.status == 1){ }}
+                <button class="layui-btn layui-btn-xs">正常</button>
+                {{#  } else if(d.status == 2) { }}
+                <button class="layui-btn layui-btn-primary layui-btn-xs">冻结</button>
+                {{#  } }}
+            </script>
+
+            <!-- 开始时间格式化处理 -->
+            <script type="text/html" id="startDateTpl">
+                {{formatDate(d.startDate)}}
+            </script>
+
+            <!-- 结束时间格式化处理 -->
+            <script type="text/html" id="endDateTpl">
+                {{formatDate(d.endDate)}}
+            </script>
+
+        </div>
+    </div>
+</div>
+
+<script src="../../layui/layui.js"></script>
+<script type="text/javascript">
+    // 日期格式转换函数
+    function formatDate(str) {
+        if(str != null){
+            var now = new Date(str);
+            var year = now.getFullYear();  
+            var month = now.getMonth() + 1;  
+            var date = now.getDate();      
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+            return year + "-" + month + "-" + date +" "+hours+":"+minutes+":"+seconds;
+        }
+        return "";
+    }
+</script>
+<script type="text/javascript">
+    layui.config({
+        base: '../layui/layuiAdmin/' //静态资源所在路径
+    }).extend({
+        index: 'lib/index' //主入口模块
+    }).use(['layer', 'table', 'form'], function(){
+        var $ = layui.$
+            ,form = layui.form
+            ,layer = layui.layer
+            ,table = layui.table;
+
+        //加载表格
+        table.render({
+            elem: '#LAY-activity-manage'
+            ,url:'/promotion/getActivityList' //后端接口：获取促销活动列表
+            ,cellMinWidth: 80
+            ,title: '促销活动数据表'
+            ,cols: [[
+                {type: 'checkbox', fixed: 'left'}
+                ,{field:'activityId',title:'活动ID',width: 100}
+                ,{field:'activityName', title:'活动名称',width: 180}
+                ,{field:'barcode', title:'活动条形码',width: 180} <!-- 修改这里的field为barcode -->
+                ,{field:'status', title:'状态', templet: '#statusTpl', width: 100}
+                ,{field:'startDate', title:'开始时间', templet: '#startDateTpl', width: 150}
+                ,{field:'endDate', title:'结束时间', templet: '#endDateTpl', width: 150}
+                ,{fixed: 'right', title:'操作', toolbar: '#table-activityadmin', width: 180}
+            ]]
+            ,page: {
+                curr: 1 //设定初始在第 1 页
+                ,limit: 5 //设定初始每页显示 5 条
+            },
+            limits:[5,10,15,20]
+        });
+
+        //监听行工具事件
+        table.on('tool(LAY-activity-manage)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'del'){
+                layer.confirm('真的删除该活动吗？', function(index){
+                    $.ajax({
+                        url:"/promotion/deleteActivity", //删除活动接口
+                        type:"post",
+                        data:{activityId: data.activityId}, 
+                        dataType:"json", 
+                        success:function (res){
+                            if(res.code == 0){
+                                layer.msg(res.message);
+                                table.reload('LAY-activity-manage');
+                                layer.close(index);
+                            } else {
+                                layer.msg(res.message, {icon: 5});
+                            }
+                        }
+                    })
+                });
+            } else if(obj.event === 'edit'){
+                layer.open({
+                    type: 2
+                    ,title: '修改活动信息'
+                    ,skin: 'layui-layer-molv'
+                    ,content: 'edit_activity.html'
+                    ,maxmin: true
+                    ,area: ['480px', '570px']
+                    ,success: function (layero, index){
+                        var body = layer.getChildFrame("body", index);
+                        body.find("input[name=activityId]").val(data.activityId);
+                        body.find("input[name=activityName]").val(data.activityName);
+                        body.find("input[name=barcode]").val(data.barcode);
+                        body.find("input[name=status]").val(data.status);
+                        body.find("input[name=startDate]").val(data.startDate);
+                        body.find("input[name=endDate]").val(data.endDate);
+                    }
+                });
+            }
+        });
+
+        //监听搜索
+        form.on('submit(LAY-activity-search)', function(data){
+            var field = data.field;
+            //执行重载
+            table.reload('LAY-activity-manage', {
+                url: '/promotion/searchActivity',
+                where: field
+            });
+        });
+
+        //事件
+        var active = {
+            batchdel: function(){
+                var checkStatus = table.checkStatus('LAY-activity-manage')
+                    ,checkData = checkStatus.data; 
+
+                if(checkData.length == 0){
+                    return layer.msg('请选择数据');
+                }
+
+                layer.confirm('确定删除选中的活动吗？',function (){
+                    $.ajax({
+                        url:"/promotion/batchDeleteActivity",
+                        type:"post",
+                        data: JSON.stringify(checkData), // 批量删除活动
+                        contentType: 'application/json',
+                        success:function(res){
+                            if(res.code == 0){
+                                layer.msg('已删除');
+                                table.reload('LAY-activity-manage');
+                            } else {
+                                layer.msg(res.message, {icon: 5});
+                            }
+                        }
+                    })
+                })
+            },
+            add: function(){
+                layer.open({
+                    type: 2
+                    ,title: '添加促销活动'
+                    ,skin: 'layui-layer-molv'
+                    ,content: 'add_activity.html'
+                    ,maxmin: true
+                    ,area: ['480px', '370px']
+                    ,btn: ['确定', '取消']
+                    ,yes: function(index, layero){
+                        var iframeWindow = window['layui-layer-iframe'+ index]
+                            ,submitID = 'LAY-activity-front-submit'
+                            ,submit = layero.find('iframe').contents().find('#'+ submitID);
+                        
+                        iframeWindow.layui.form.on('submit('+ submitID +')', function(data){
+                            var field = data.field; 
+                            $.ajax({
+                                url:"/promotion/saveActivity", // 添加活动接口
+                                type:"post",
+                                data:JSON.stringify(field),
+                                contentType:"application/json;charset=utf-8",
+                                dataType:"json",
+                                success:function (res){
+                                    if(res.code == 0){
+                                        layer.msg(res.message);
+                                        table.reload('LAY-activity-manage');
+                                        layer.close(index);
+                                    } else {
+                                        layer.msg(res.message, {icon: 5});
+                                    }
+                                }
+                            })
+                        });
+                        submit.trigger('click');
+                    }
+                });
+            }
+        };
+
+        $('.layui-btn.layuiadmin-btn-useradmin').on('click', function(){
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+    });
+</script>
+</body>
+</html>
